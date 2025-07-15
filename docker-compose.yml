@@ -1,0 +1,78 @@
+version: '3.8'
+
+services:
+  mongodb:
+    image: mongo:5.0
+    container_name: community-aid-db
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: admin123
+      MONGO_INITDB_DATABASE: community-aid
+    volumes:
+      - mongodb_data:/data/db
+    networks:
+      - community-aid-network
+
+  server:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+    container_name: community-aid-server
+    restart: unless-stopped
+    ports:
+      - "5000:5000"
+    environment:
+      - NODE_ENV=production
+      - MONGODB_URI=mongodb://admin:admin123@mongodb:27017/community-aid?authSource=admin
+      - JWT_SECRET=your-super-secret-jwt-key-here
+      - PORT=5000
+      - CLIENT_URL=http://localhost:3000
+    depends_on:
+      - mongodb
+    volumes:
+      - ./server:/app
+      - /app/node_modules
+    networks:
+      - community-aid-network
+
+  client:
+    build:
+      context: ./client
+      dockerfile: Dockerfile
+    container_name: community-aid-client
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - NEXT_PUBLIC_API_URL=http://localhost:5000/api
+      - NEXT_PUBLIC_SOCKET_URL=http://localhost:5000
+    depends_on:
+      - server
+    volumes:
+      - ./client:/app
+      - /app/node_modules
+      - /app/.next
+    networks:
+      - community-aid-network
+
+  redis:
+    image: redis:7-alpine
+    container_name: community-aid-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - community-aid-network
+
+volumes:
+  mongodb_data:
+  redis_data:
+
+networks:
+  community-aid-network:
+    driver: bridge
