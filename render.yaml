@@ -1,0 +1,45 @@
+services:
+  # Backend API Service
+  - type: web
+    name: community-aid-api
+    env: node
+    plan: free
+    buildCommand: cd server && npm install
+    startCommand: cd server && npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      - key: MONGODB_URI
+        fromDatabase:
+          name: community-aid-db
+          property: connectionString
+      - key: JWT_SECRET
+        generateValue: true
+      - key: CLIENT_URL
+        value: https://community-aid-client.onrender.com
+    healthCheckPath: /api/health
+
+  # Frontend Client Service
+  - type: web
+    name: community-aid-client
+    env: node
+    plan: free
+    buildCommand: cd client && npm install && npm run build
+    startCommand: cd client && npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: NEXT_PUBLIC_API_URL
+        value: https://community-aid-api.onrender.com/api
+      - key: NEXT_PUBLIC_APP_URL
+        value: https://community-aid-client.onrender.com
+      - key: NEXT_PUBLIC_SOCKET_URL
+        value: https://community-aid-api.onrender.com
+
+databases:
+  - name: community-aid-db
+    databaseName: community_aid
+    user: community_aid_user
+    plan: free
